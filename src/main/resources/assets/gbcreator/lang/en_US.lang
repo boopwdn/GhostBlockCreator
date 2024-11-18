@@ -1,0 +1,22 @@
+command.help=Use /gbc help
+
+command.help.desc=<GBC> Help: /gbc help - show this message
+command.edit.desc=<GBC> Help: /gbc edit - toggle edit
+command.set.desc=<GBC> Help: /gbc set <pos> <block> <meta> - place ghost block at pos
+command.del.desc=<GBC> Help: /gbc del <pos> - delete ghost block at pos
+command.get.desc=<GBC> Help: /gbc get <pos> - get block at pos
+command.cfg.desc=<GBC> Help: /gbc cfg - open settings
+
+command.n_exist=Command `%s` doesn't existed!
+
+command.error.disabled=<GBC> Error: GBC is disabled!
+command.error.not_edit=<GBC> Error: Not in edit mode!
+command.error.not_numb=<GBC> Error: %s is not a validate number!
+command.error.few_args=<GBC> Error: Args too few, at least %s but found %s
+command.error.na_block=<GBC> Error: %s is not a exist block!
+
+command.add_block.not_num=<GBC> %s is not a number
+command.get_block.block_msg=<GBC> Block at [%s,%s,%s] is %s#%s
+
+edit_mode.enabled=<GBC> Edit Mode Enabled!
+edit_mode.disabled=<GBC> Edit Mode Disabled!
