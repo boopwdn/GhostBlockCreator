@@ -1,0 +1,17 @@
+{
+    "compatibilityLevel": "JAVA_8",
+    "minVersion": "0.7",
+    "package": "water.or.gbcreator.mixin",
+    "refmap": "mixins.${id}.refmap.json",
+    "injectors": {
+        "maxShiftBy": 5
+    },
+    "client": [
+        "MixinNetHandlerPlayClient"
+    ],
+    "verbose": true,
+    "mixins": [
+        "MixinChunk",
+        "MixinModList"
+    ]
+}
