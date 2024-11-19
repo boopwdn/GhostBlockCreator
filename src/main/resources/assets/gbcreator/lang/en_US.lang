@@ -15,8 +15,8 @@ command.error.not_numb=<GBC> Error: %s is not a validate number!
 command.error.few_args=<GBC> Error: Args too few, at least %s but found %s
 command.error.na_block=<GBC> Error: %s is not a exist block!
 
-command.add_block.not_num=<GBC> %s is not a number
-command.get_block.block_msg=<GBC> Block at [%s,%s,%s] is %s#%s
-
 edit_mode.enabled=<GBC> Edit Mode Enabled!
 edit_mode.disabled=<GBC> Edit Mode Disabled!
+set_block.message=<GBC> Set block [%s#%s] at [%s,%s,%s]
+del_block.message=<GBC> Del block [%s#%s] at [%s,%s,%s]
+get_block.message=<GBC> Get block [%s#%s] at [%s,%s,%s]

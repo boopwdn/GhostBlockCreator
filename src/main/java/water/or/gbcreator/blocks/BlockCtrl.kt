@@ -1,9 +1,8 @@
 package water.or.gbcreator.blocks
 
 import net.minecraft.block.Block
-import net.minecraft.block.state.IBlockState
+import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.util.BlockPos
-import net.minecraft.util.ChatComponentTranslation
 import net.minecraftforge.event.world.WorldEvent
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -11,110 +10,103 @@ import water.or.gbcreator.event.BlockChangeEvent
 import water.or.gbcreator.event.ChunkLoadedEvent
 import water.or.gbcreator.event.ClickBlockEvent
 import water.or.gbcreator.event.SBlockChangeEvent
-import water.or.gbcreator.utils.config
-import water.or.gbcreator.utils.isF7
-import water.or.gbcreator.utils.mc
-import water.or.gbcreator.utils.msgMe
+import water.or.gbcreator.utils.*
 
 object BlockCtrl {
-        
         private var edit = false
-        private val raw = HashMap<BlockPos, BlockData>()
-        private var current: BlockStore = BlockStore.EMPTY
+        private var curr = BlockStore.EMPTY
         
-        private fun empty(): Boolean = current == BlockStore.EMPTY
+        fun empty() = curr == BlockStore.EMPTY
         
-        fun toggle() {
-                if (!config.enabled || empty()) return
+        fun edit() = edit
+        
+        fun editToggle() {
+                if (empty()) return
+                if (edit) config.save()
                 edit = !edit
-                ChatComponentTranslation("edit_mode.${if (edit) "en" else "dis"}abled").msgMe()
-                if (!edit) current.save()
-                refresh(true)
+                msgTranslate("edit_mode.${if (edit) "en" else "dis"}abled")
+                
         }
         
-        fun edit(): Boolean = edit
-        
-        fun refresh(enabled: Boolean) {
-                if (empty() || mc.theWorld == null) return
-                if (enabled) {
-                        if (raw.isEmpty()) current.blocks.keys.forEach {
-                                raw[it] = BlockData(it, mc.theWorld.getBlockState(it))
-                                mc.theWorld.setBlockState(it, current.blocks[it]?.state ?: return)
-                        }
-                } else {
-                        if (raw.isNotEmpty()) raw.keys.forEach {
-                                mc.theWorld.setBlockState(it, raw[it]?.state ?: return)
-                        }
-                        if (edit) {
-                                current.save()
-                                edit = false
-                        }
-                        raw.clear()
-                }
+        fun inactive(repl: BlockStore = BlockStore.EMPTY) {
+                if (edit) editToggle()
+                cleanupAll()
+                if (!empty()) curr.save()
+                curr = repl
         }
+        
+        fun reactive() {
+                loadRawAll()
+                replaceAll()
+        }
+        
+        private fun replaceAll() = curr.forEach { pos, data -> if (world?.isBlockLoaded(pos) ?: return@forEach) data.replaceIt(pos) }
+        private fun cleanupAll() = curr.forEach { pos, data -> if (world?.isBlockLoaded(pos) ?: return@forEach) data.cleanupIt(pos) }
+        private fun loadRawAll() = curr.forEach { pos, data -> if (world?.isBlockLoaded(pos) ?: return@forEach) data.loadRawIt(pos) }
         
         fun set(pos: BlockPos, block: Block, meta: Int) {
-                if (!config.enabled || empty()) return
-                current.set(pos, block, meta)
-                val state: IBlockState = mc.theWorld.getBlockState(pos)
-                if (raw[pos] == null) raw[pos] = BlockData(pos, state.block, state.block.getMetaFromState(state))
+                curr.set(pos, BlockData(block, meta)).replaceIt(pos)
+                        .run { msgTranslate("set_block.message", block.registryName, meta, pos.x, pos.y, pos.z) }
         }
         
         fun del(pos: BlockPos) {
-                if (!config.enabled || empty()) return
-                current.del(pos)
-                mc.theWorld.setBlockState(pos, raw.remove(pos)?.state ?: return)
+                (curr.del(pos) ?: return).cleanupIt(pos)
+                        .run { msgTranslate("del_block.message", block.registryName, meta, pos.x, pos.y, pos.z) }
+        }
+        
+        fun get(pos: BlockPos) {
+                (world?.getBlockState(pos) ?: return)
+                        .run { msgTranslate("get_block.message", block.registryName, meta, pos.x, pos.y, pos.z) }
         }
         
         @SubscribeEvent
         fun onEvent(event: ClickBlockEvent) {
                 if (!config.enabled || !edit || empty()) return
-                if (raw.containsKey(event.pos)) {
-                        del(event.pos)
-                        event.isCanceled = true
-                }
+                del(event.pos)
         }
         
-        @SubscribeEvent
-        fun onEvent(event: BlockChangeEvent) {
-                if (!config.enabled || edit || empty()) return
-                event.result = current.blocks[event.pos]?.state ?: return
-        }
+// TODO: ?!
+//        @SubscribeEvent
+//        fun onEvent(event: BlockChangeEvent) {
+//                if (!config.enabled || edit || empty()) return
+//                (curr.get(event.pos) ?: return).takeIf { it.nowState != event.result }?.replaceIt(event.pos).run { event.isCanceled = true }
+//        }
         
         @SubscribeEvent
         fun onEvent(event: ChunkLoadedEvent) {
                 if (!config.enabled || empty()) return
-                current.chunks[Pair(event.x, event.y)]?.forEach {
-                        raw[it.pos] = BlockData(it.pos, mc.theWorld.getBlockState(it.pos))
-                        mc.theWorld.setBlockState(it.pos, it.state)
+                curr.forEachInChunk(event.pos) { pos, data ->
+                        data.loadRawIt(pos).replaceIt(pos)
                 }
         }
         
         @SubscribeEvent
         fun onEvent(event: SBlockChangeEvent) {
                 if (!config.enabled || empty()) return
-                if (current.blocks.containsKey(event.pos)) raw[event.pos] = BlockData(event.pos, event.update)
+                curr.get(event.pos)?.run { raw(event.update) }
         }
         
         @SubscribeEvent
-        fun onEvent(event: WorldEvent.Load) {
+        fun onEvent(e: WorldEvent.Unload) {
                 if (!config.enabled || empty()) return
-                if (edit) toggle()
-                current = BlockStore.EMPTY
-                raw.clear()
+                inactive()
         }
         
-        private var ticks: Int = 0
-        
         @SubscribeEvent
-        fun onEvent(event: TickEvent.ClientTickEvent) {
+        fun onEvent(e: TickEvent.ClientTickEvent) {
                 if (!config.enabled) return
-                if (ticks == 0) current.blocks.values.forEach { mc.theWorld.setBlockState(it.pos, it.state) }
-                ticks = (ticks + 1) % 20
-                val result: BlockStore = if (isF7()) BlockStore.F7Store else BlockStore.EMPTY
-                if (result == current) return
-                if (edit && !empty()) toggle()
-                current = result
-                refresh(true)
+                replaceAll()
+                val r = if (isF7()) BlockStore.F7Store else BlockStore.EMPTY
+                if (r == curr) return
+                inactive(r)
+                reactive()
         }
 }
+
+private inline val world: WorldClient? get() = mc.theWorld
+
+private fun BlockData.replaceIt(pos: BlockPos) = apply { world?.run { if (getBlockState(pos) != nowState) setBlockState(pos, nowState) } }
+
+private fun BlockData.cleanupIt(pos: BlockPos) = apply { if (rawState != null) world?.setBlockState(pos, rawState) }.apply { rawState = null }
+
+private fun BlockData.loadRawIt(pos: BlockPos) = apply { if (rawState == null) raw(world?.getBlockState(pos)) }

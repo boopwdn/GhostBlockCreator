@@ -10,9 +10,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import water.or.gbcreator.event.ClickBlockEvent;
 import water.or.gbcreator.utils.UtilsKt;
 
-@Mixin(PlayerControllerMP.class)
+@Mixin (PlayerControllerMP.class)
 public class MixinPlayerControllerMP {
-        @Inject(method = "clickBlock", at = @At("HEAD"), cancellable = true)
+        @Inject (method = "clickBlock", at = @At ("HEAD"), cancellable = true)
         private void preClickBlock(BlockPos pos, EnumFacing side, CallbackInfoReturnable<Boolean> cir) {
                 if (UtilsKt.postAndCatch(new ClickBlockEvent(pos, side))) {
                         cir.setReturnValue(true);

@@ -1,19 +1,16 @@
 package water.or.gbcreator.command
 
 import net.minecraft.block.Block
-import net.minecraft.client.resources.I18n
 import net.minecraft.command.CommandBase
 import net.minecraft.command.CommandBase.parseDouble
 import net.minecraft.command.ICommandSender
 import net.minecraft.command.NumberInvalidException
 import net.minecraft.util.BlockPos
-import net.minecraft.util.ChatComponentText
 import water.or.gbcreator.GhostBlockCreator
 import water.or.gbcreator.blocks.BlockCtrl
 import water.or.gbcreator.utils.config
 import water.or.gbcreator.utils.mc
-import water.or.gbcreator.utils.meta
-import water.or.gbcreator.utils.msgMe
+import water.or.gbcreator.utils.msgTranslate
 import java.util.stream.Collectors
 import kotlin.math.floor
 
@@ -50,16 +47,14 @@ class CommandMe : CommandBase() {
         companion object {
                 init {
                         RegisterSubCmd("help") { REGISTRY.keys.forEach { msgTranslate("command.$it.desc") } }
-                        RegisterSubCmd("edit") { reqEnabled { BlockCtrl.toggle() } }
+                        RegisterSubCmd("edit") { reqEnabled { BlockCtrl.editToggle() } }
                         RegisterSubCmd("cfg") { GhostBlockCreator.config.openGui() }
-                        RegisterSubCmd("set", true) { reqArgsCnt(4, it.size - 1) { reqEnabled { reqEditing { parsePos(it)?.addBlock(it) } } } }
-                        RegisterSubCmd("del", true) { reqArgsCnt(3, it.size - 1) { reqEnabled { reqEditing { parsePos(it)?.delBlock() } } } }
-                        RegisterSubCmd("get", true) { reqArgsCnt(3, it.size - 1) { reqEnabled { parsePos(it)?.getBlock() } } }
+                        RegisterSubCmd("set", true) { reqArgsCnt(4, it.size - 1) { reqEnabled { reqEditing { parsePos(it)?.addBlock(it) ?: return@RegisterSubCmd } } } }
+                        RegisterSubCmd("del", true) { reqArgsCnt(3, it.size - 1) { reqEnabled { reqEditing { BlockCtrl.del(parsePos(it) ?: return@RegisterSubCmd) } } } }
+                        RegisterSubCmd("get", true) { reqArgsCnt(3, it.size - 1) { reqEnabled { BlockCtrl.get(parsePos(it) ?: return@RegisterSubCmd) } } }
                 }
         }
 }
-
-private fun msgTranslate(key: String, vararg args: Any?) = ChatComponentText(I18n.format(key, *args)).msgMe()
 
 private fun parsePos(args: Array<out String>): BlockPos? = runCatching {
         BlockPos(
@@ -67,24 +62,19 @@ private fun parsePos(args: Array<out String>): BlockPos? = runCatching {
                 floor(parseDouble(mc.thePlayer.posY, args[2], false)),
                 floor(parseDouble(mc.thePlayer.posZ, args[3], false))
         )
-}.onFailure {
-        if (it is NumberInvalidException) msgTranslate("command.error.not_numb", it.errorObjects?.get(0))
-}.getOrNull()
+}.onFailure { if (it is NumberInvalidException) msgTranslate("command.error.not_numb", it.errorObjects?.get(0)) }.getOrNull()
+
 
 private inline fun reqArgsCnt(req: Int, argc: Int, runs: () -> (Unit)) = if (argc >= req) runs() else msgTranslate("command.error.few_args", req, argc)
-
 private inline fun reqEnabled(runs: () -> (Unit)) = if (config.enabled) runs() else msgTranslate("command.error.disabled")
-
 private inline fun reqEditing(runs: () -> (Unit)) = if (BlockCtrl.edit()) runs() else msgTranslate("command.error.not_edit")
 
-private fun BlockPos.addBlock(args: Array<out String>) = Block.getBlockFromName(args[4])?.let { block -> (if (args.size > 5) parse(args[5]) else 0)?.let { BlockCtrl.set(this, block, it) } } ?: msgTranslate("command.error.na_block", args[4])
+private fun BlockPos.addBlock(args: Array<out String>) =
+        BlockCtrl.set(
+                this, args[4].toBlock() ?: msgTranslate("command.error.na_block", args[4]).run { return@addBlock },
+                if (args.size > 5) args[5].toMeta() ?: msgTranslate("command.error.not_numb", args[5]).run { return@addBlock } else 0
+        )
 
-private fun BlockPos.delBlock() = BlockCtrl.del(this)
+private fun String.toBlock(): Block? = Block.getBlockFromName(this).also { if (it == null) msgTranslate("command.error.na_block", this) }
 
-private fun BlockPos.getBlock() = mc.theWorld.getBlockState(this)?.let { msgTranslate("command.get_block.block_msg", x, y, z, it.block.registryName, it.meta) }
-
-private fun parse(arg: String): Int? = runCatching {
-        Integer.parseInt(arg)
-}.onFailure {
-        msgTranslate("command.add_block.not_num", arg)
-}.getOrNull()
+private fun String.toMeta(): Int? = runCatching { toInt() }.getOrNull()

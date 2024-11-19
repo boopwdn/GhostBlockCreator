@@ -14,13 +14,12 @@ class GBCConfig : Config(Mod(Tags.MOD_NAME, ModType.SKYBLOCK), Tags.MOD_ID + ".j
         
         @HUD(name = "State HUD") val hudState = HudState()
         
+        private var wasEnabled = enabled
+        
         override fun save() {
                 super.save()
-                BlockCtrl.refresh(enabled)
-        }
-        
-        override fun load() {
-                super.load()
-                BlockCtrl.refresh(enabled)
+                if (wasEnabled == enabled) return
+                wasEnabled = enabled
+                if (!BlockCtrl.empty()) if (enabled) BlockCtrl.reactive() else BlockCtrl.inactive()
         }
 }
