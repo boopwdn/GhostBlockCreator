@@ -6,7 +6,6 @@ import net.minecraft.util.BlockPos
 import net.minecraftforge.event.world.WorldEvent
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import water.or.gbcreator.event.BlockChangeEvent
 import water.or.gbcreator.event.ChunkLoadedEvent
 import water.or.gbcreator.event.ClickBlockEvent
 import water.or.gbcreator.event.SBlockChangeEvent
@@ -64,12 +63,15 @@ object BlockCtrl {
                 if (!config.enabled || !edit || empty()) return
                 del(event.pos)
         }
-        
+
 // TODO: ?!
 //        @SubscribeEvent
 //        fun onEvent(event: BlockChangeEvent) {
 //                if (!config.enabled || edit || empty()) return
-//                (curr.get(event.pos) ?: return).takeIf { it.nowState != event.result }?.replaceIt(event.pos).run { event.isCanceled = true }
+//                (curr.get(event.pos) ?: return)
+//                        .takeIf { it.rawState != null && it.nowState != event.result }
+//                        ?.replaceIt(event.pos)
+//                        .run { event.isCanceled = true }
 //        }
         
         @SubscribeEvent
@@ -96,10 +98,8 @@ object BlockCtrl {
         fun onEvent(e: TickEvent.ClientTickEvent) {
                 if (!config.enabled) return
                 replaceAll()
-                val r = if (isF7()) BlockStore.F7Store else BlockStore.EMPTY
-                if (r == curr) return
-                inactive(r)
-                reactive()
+                ((if (isF7()) BlockStore.F7Store else BlockStore.EMPTY)
+                         .takeIf { it == curr }?.also { inactive(it) } ?: return).also { reactive() }
         }
 }
 
