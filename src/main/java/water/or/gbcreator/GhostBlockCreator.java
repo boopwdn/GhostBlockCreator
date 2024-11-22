@@ -28,5 +28,5 @@ public class GhostBlockCreator {
         }
         
         @Mod.EventHandler
-        public void postInit(FMLPostInitializationEvent event) { BlockStore.Companion.load(); }
+        public void postInit(FMLPostInitializationEvent event) { BlockStore.loadAll(); }
 }

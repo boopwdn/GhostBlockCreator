@@ -21,7 +21,7 @@ class BlockStore(name: String) {
                 registry.add(this)
         }
         
-        fun set(pos: BlockPos, data: BlockData): BlockData = pos.apply { chunks.getOrPut(chunk) { HashSet() }.add(pos) }.also { data.raw(blocks[it]?.rawState) }.also { blocks[it] = data }.run { data }
+        fun set(pos: BlockPos, data: BlockData): BlockData = pos.apply { chunks.getOrPut(chunk) { HashSet() }.add(pos) }.also { data raw blocks[it]?.rawState }.also { blocks[it] = data }.run { data }
         
         fun del(pos: BlockPos): BlockData? = pos.apply { chunks[chunk]?.remove(pos) }.run { blocks.remove(pos) }
         
@@ -49,16 +49,16 @@ class BlockStore(name: String) {
                 close()
         }
         
-        fun forEach(action: (BlockPos, BlockData) -> (Unit)) = blocks.forEach { action(it.key, it.value) }
+        infix fun forEach(action: (BlockPos, BlockData) -> (Unit)) = blocks.forEach { action(it.key, it.value) }
         
         fun forEachInChunk(pos: ChunkPos, action: (BlockPos, BlockData) -> (Unit)) = chunks[pos]?.forEach { action(it, blocks[it]!!) }
         
         companion object {
-                val EMPTY = BlockStore("ignored")
+                @JvmStatic val EMPTY = BlockStore("ignored")
                 
-                val F7Store = BlockStore("floor7")
+                @JvmStatic val F7Store = BlockStore("floor7")
                 
-                fun load() = registry.forEach { if (it != EMPTY) it.load() }
+                @JvmStatic fun loadAll() = registry.forEach { if (it != EMPTY) it.load() }
         }
 }
 

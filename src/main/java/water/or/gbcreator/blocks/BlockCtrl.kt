@@ -12,101 +12,93 @@ import water.or.gbcreator.event.SBlockChangeEvent
 import water.or.gbcreator.utils.*
 
 object BlockCtrl {
-        private var edit = false
-        private var curr = BlockStore.EMPTY
+        @JvmStatic private var edit = false
+        @JvmStatic private var curr = BlockStore.EMPTY
         
-        fun empty() = curr == BlockStore.EMPTY
+        @JvmStatic fun check() = curr != BlockStore.EMPTY
         
-        fun edit() = edit
+        @JvmStatic fun edit() = edit
         
-        fun editToggle() {
-                if (empty()) return
-                if (edit) config.save()
-                edit = !edit
-                msgTranslate("edit_mode.${if (edit) "en" else "dis"}abled")
-                
+        @JvmStatic fun editToggle() {
+                if (check()) {
+                        if (edit) config.save()
+                        edit = !edit
+                        msgTranslate("edit_mode.${if (edit) "en" else "dis"}abled")
+                }
         }
         
-        fun inactive(repl: BlockStore = BlockStore.EMPTY) {
+        @JvmStatic fun inactive(repl: BlockStore = BlockStore.EMPTY) {
                 if (edit) editToggle()
-                cleanupAll()
-                if (!empty()) curr.save()
+                curr forEach { pos, data -> if (world?.isBlockLoaded(pos) ?: return@forEach) data cleanup pos }
+                if (check()) curr.save()
                 curr = repl
         }
         
-        fun reactive() {
-                loadRawAll()
-                replaceAll()
+        @JvmStatic fun reactive() {
+                curr forEach { pos, data -> if (world?.isBlockLoaded(pos) ?: return@forEach) data loadRaw pos }
         }
         
-        private fun replaceAll() = curr.forEach { pos, data -> if (world?.isBlockLoaded(pos) ?: return@forEach) data.replaceIt(pos) }
-        private fun cleanupAll() = curr.forEach { pos, data -> if (world?.isBlockLoaded(pos) ?: return@forEach) data.cleanupIt(pos) }
-        private fun loadRawAll() = curr.forEach { pos, data -> if (world?.isBlockLoaded(pos) ?: return@forEach) data.loadRawIt(pos) }
-        
-        fun set(pos: BlockPos, block: Block, meta: Int) {
-                curr.set(pos, BlockData(block, meta)).replaceIt(pos)
+        @JvmStatic fun set(pos: BlockPos, block: Block, meta: Int) {
+                (curr.set(pos, BlockData(block, meta)) loadRaw pos)
                         .run { msgTranslate("set_block.message", block.registryName, meta, pos.x, pos.y, pos.z) }
         }
         
-        fun del(pos: BlockPos) {
-                (curr.del(pos) ?: return).cleanupIt(pos)
+        @JvmStatic infix fun del(pos: BlockPos) {
+                ((curr.del(pos) ?: return) cleanup pos)
                         .run { msgTranslate("del_block.message", block.registryName, meta, pos.x, pos.y, pos.z) }
         }
         
-        fun get(pos: BlockPos) {
+        @JvmStatic infix fun get(pos: BlockPos) {
                 (world?.getBlockState(pos) ?: return)
                         .run { msgTranslate("get_block.message", block.registryName, meta, pos.x, pos.y, pos.z) }
         }
         
         @SubscribeEvent
         fun onEvent(event: ClickBlockEvent) {
-                if (!config.enabled || !edit || empty()) return
-                del(event.pos)
+                if (config.enabled && check() && edit) del(event.pos)
         }
 
 // TODO: ?!
 //        @SubscribeEvent
 //        fun onEvent(event: BlockChangeEvent) {
-//                if (!config.enabled || edit || empty()) return
-//                (curr.get(event.pos) ?: return)
-//                        .takeIf { it.rawState != null && it.nowState != event.result }
-//                        ?.replaceIt(event.pos)
-//                        .run { event.isCanceled = true }
+//                if (config.enabled && check() && !edit)
+//                        (curr.get(event.pos) ?: return)
+//                                .takeIf { it.rawState != null && it.nowState != event.result }
+//                                ?.replace(event.pos)
+//                                .run { event.isCanceled = true }
 //        }
         
         @SubscribeEvent
         fun onEvent(event: ChunkLoadedEvent) {
-                if (!config.enabled || empty()) return
-                curr.forEachInChunk(event.pos) { pos, data ->
-                        data.loadRawIt(pos).replaceIt(pos)
-                }
+                if (config.enabled && check()) curr.forEachInChunk(event.pos) { pos, data -> data loadRaw pos }
         }
         
         @SubscribeEvent
         fun onEvent(event: SBlockChangeEvent) {
-                if (!config.enabled || empty()) return
-                curr.get(event.pos)?.run { raw(event.update) }
+                if (config.enabled && check()) curr.get(event.pos)?.run { raw(event.update) }
         }
         
         @SubscribeEvent
         fun onEvent(e: WorldEvent.Unload) {
-                if (!config.enabled || empty()) return
-                inactive()
+                if (config.enabled && check()) inactive()
         }
         
         @SubscribeEvent
         fun onEvent(e: TickEvent.ClientTickEvent) {
                 if (!config.enabled) return
-                replaceAll()
+                curr forEach { pos, data -> if (world?.isBlockLoaded(pos) ?: return@forEach) data replace pos }
                 ((if (isF7()) BlockStore.F7Store else BlockStore.EMPTY)
-                         .takeIf { it == curr }?.also { inactive(it) } ?: return).also { reactive() }
+                        .takeIf { it != curr }?.also { inactive(it) } ?: return).also { reactive() }
         }
 }
 
 private inline val world: WorldClient? get() = mc.theWorld
 
-private fun BlockData.replaceIt(pos: BlockPos) = apply { world?.run { if (getBlockState(pos) != nowState) setBlockState(pos, nowState) } }
+private infix fun BlockData.replace(pos: BlockPos) =
+        apply { world?.run { if (getBlockState(pos) != nowState) setBlockState(pos, nowState) } }
 
-private fun BlockData.cleanupIt(pos: BlockPos) = apply { if (rawState != null) world?.setBlockState(pos, rawState) }.apply { rawState = null }
+private infix fun BlockData.cleanup(pos: BlockPos) =
+        apply { if (rawState != null) world?.setBlockState(pos, rawState) }.apply { rawState = null }
 
-private fun BlockData.loadRawIt(pos: BlockPos) = apply { if (rawState == null) raw(world?.getBlockState(pos)) }
+private infix fun BlockData.loadRaw(pos: BlockPos) =
+        apply { if (rawState == null) raw(world?.getBlockState(pos)) }.replace(pos)
