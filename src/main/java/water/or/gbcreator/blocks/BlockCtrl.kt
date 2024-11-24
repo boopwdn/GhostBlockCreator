@@ -6,6 +6,7 @@ import net.minecraft.util.BlockPos
 import net.minecraftforge.event.world.WorldEvent
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import water.or.gbcreator.event.BlockChangeEvent
 import water.or.gbcreator.event.ChunkLoadedEvent
 import water.or.gbcreator.event.ClickBlockEvent
 import water.or.gbcreator.event.SBlockChangeEvent
@@ -15,22 +16,22 @@ object BlockCtrl {
         @JvmStatic private var edit = false
         @JvmStatic private var curr = BlockStore.EMPTY
         
-        @JvmStatic fun check() = curr != BlockStore.EMPTY
+        @JvmStatic fun notEmpty() = curr != BlockStore.EMPTY
+        
+        @JvmStatic fun valid() = !config.enabled && notEmpty()
         
         @JvmStatic fun edit() = edit
         
-        @JvmStatic fun editToggle() {
-                if (check()) {
-                        if (edit) config.save()
-                        edit = !edit
-                        msgTranslate("edit_mode.${if (edit) "en" else "dis"}abled")
-                }
-        }
+        @JvmStatic fun editToggle() = if (notEmpty()) {
+                if (edit) config.save()
+                edit = !edit
+                msgTranslate("edit_mode.${if (edit) "en" else "dis"}abled")
+        } else msgTranslate("edit_mode.invalid")
         
         @JvmStatic fun inactive(repl: BlockStore = BlockStore.EMPTY) {
                 if (edit) editToggle()
                 curr forEach { pos, data -> if (world?.isBlockLoaded(pos) ?: return@forEach) data cleanup pos }
-                if (check()) curr.save()
+                if (curr != BlockStore.EMPTY) curr.save()
                 curr = repl
         }
         
@@ -54,41 +55,34 @@ object BlockCtrl {
         }
         
         @SubscribeEvent
-        fun onEvent(event: ClickBlockEvent) {
-                if (config.enabled && check() && edit) del(event.pos)
-        }
-
-// TODO: ?!
+        fun onEvent(event: ClickBlockEvent) = runIf(valid() && edit) { del(event.pos) }
+        
+        // TODO: ?!
 //        @SubscribeEvent
-//        fun onEvent(event: BlockChangeEvent) {
-//                if (config.enabled && check() && !edit)
-//                        (curr.get(event.pos) ?: return)
-//                                .takeIf { it.rawState != null && it.nowState != event.result }
-//                                ?.replace(event.pos)
-//                                .run { event.isCanceled = true }
+//        fun onEvent(event: BlockChangeEvent) = runIf(valid() && !edit) {
+//                (curr.get(event.pos) ?: return@runIf)
+//                        .takeIf { it.rawState != null && it.nowState != event.result }
+//                        ?.replace(event.pos)
+//                        .run { event.isCanceled = true }
 //        }
         
         @SubscribeEvent
-        fun onEvent(event: ChunkLoadedEvent) {
-                if (config.enabled && check()) curr.forEachInChunk(event.pos) { pos, data -> data loadRaw pos }
-        }
+        fun onEvent(event: ChunkLoadedEvent) =
+                runIf(valid()) { curr.forEachInChunk(event.pos) { pos, data -> data loadRaw pos } }
         
         @SubscribeEvent
-        fun onEvent(event: SBlockChangeEvent) {
-                if (config.enabled && check()) curr.get(event.pos)?.run { raw(event.update) }
-        }
+        fun onEvent(event: SBlockChangeEvent) =
+                runIf(valid()) { curr.get(event.pos)?.run { raw(event.update) } }
         
         @SubscribeEvent
-        fun onEvent(e: WorldEvent.Unload) {
-                if (config.enabled && check()) inactive()
-        }
+        fun onEvent(e: WorldEvent.Unload) =
+                runIf(valid()) { inactive() }
         
         @SubscribeEvent
-        fun onEvent(e: TickEvent.ClientTickEvent) {
-                if (!config.enabled) return
+        fun onEvent(e: TickEvent.ClientTickEvent) = runIf(config.enabled) {
                 curr forEach { pos, data -> if (world?.isBlockLoaded(pos) ?: return@forEach) data replace pos }
                 ((if (isF7()) BlockStore.F7Store else BlockStore.EMPTY)
-                        .takeIf { it != curr }?.also { inactive(it) } ?: return).also { reactive() }
+                         .takeIf { it != curr }?.also { inactive(it) } ?: return@runIf).also { reactive() }
         }
 }
 

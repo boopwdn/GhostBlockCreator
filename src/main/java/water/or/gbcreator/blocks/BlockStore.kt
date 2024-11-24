@@ -64,4 +64,4 @@ class BlockStore(name: String) {
 
 private val registry = ArrayList<BlockStore>()
 
-private inline val BlockPos.chunk: ChunkPos get() = ChunkPos(this)
+private inline val BlockPos.chunk: ChunkPos get() = ChunkPos(x shr 4, z shr 4)

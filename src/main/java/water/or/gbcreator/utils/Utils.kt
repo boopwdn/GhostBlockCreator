@@ -44,3 +44,6 @@ inline val sidebarLines: List<String>
                         .map { ScorePlayerTeam.formatPlayerName(sb.getPlayersTeam(it.playerName), it.playerName) }
         }
 
+inline fun runIf(check: Boolean, crossinline run: () -> Unit) {
+        if (check) run()
+}

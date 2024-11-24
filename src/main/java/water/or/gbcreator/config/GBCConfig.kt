@@ -20,6 +20,6 @@ class GBCConfig : Config(Mod(Tags.MOD_NAME, ModType.SKYBLOCK), Tags.MOD_ID + ".j
                 super.save()
                 if (wasEnabled == enabled) return
                 wasEnabled = enabled
-                if (BlockCtrl.check()) if (enabled) BlockCtrl.reactive() else BlockCtrl.inactive()
+                if (BlockCtrl.notEmpty()) if (enabled) BlockCtrl.reactive() else BlockCtrl.inactive()
         }
 }
