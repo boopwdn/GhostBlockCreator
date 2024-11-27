@@ -19,3 +19,5 @@ fun BlockPos.isInBoss(f: Floor) = when (f.floorNum) {
         7       -> x > -7 && z > -7
         else    -> false
 }
+
+fun meInBoss() = mc.thePlayer.position.isInBoss(getFloor())

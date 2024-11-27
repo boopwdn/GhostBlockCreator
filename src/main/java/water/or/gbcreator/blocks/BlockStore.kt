@@ -21,9 +21,9 @@ class BlockStore(name: String) {
                 registry.add(this)
         }
         
-        fun set(pos: BlockPos, data: BlockData): BlockData = pos.apply { chunks.getOrPut(chunk) { HashSet() }.add(pos) }.also { data raw blocks[it]?.rawState }.also { blocks[it] = data }.run { data }
+        fun set(pos: BlockPos, data: BlockData): BlockData = pos.apply { chunks.getOrPut(chunk) { HashSet() }.add(pos) }.let { data raw blocks[it]?.rawState; blocks[it] = data; data }
         
-        fun del(pos: BlockPos): BlockData? = pos.apply { chunks[chunk]?.remove(pos) }.run { blocks.remove(pos) }
+        fun del(pos: BlockPos): BlockData? = pos.run { chunks[chunk]?.remove(pos); blocks.remove(pos) }
         
         fun get(pos: BlockPos): BlockData? = blocks[pos]
         

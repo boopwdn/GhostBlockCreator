@@ -1,6 +1,7 @@
 package water.or.gbcreator.config
 
 import cc.polyfrost.oneconfig.config.Config
+import cc.polyfrost.oneconfig.config.annotations.Checkbox
 import cc.polyfrost.oneconfig.config.annotations.HUD
 import cc.polyfrost.oneconfig.config.data.Mod
 import cc.polyfrost.oneconfig.config.data.ModType
@@ -13,6 +14,8 @@ class GBCConfig : Config(Mod(Tags.MOD_NAME, ModType.SKYBLOCK), Tags.MOD_ID + ".j
         }
         
         @HUD(name = "State HUD") val hudState = HudState()
+        
+        @Checkbox(name = "Only In Boss") var onlyInBoss = false
         
         private var wasEnabled = enabled
         

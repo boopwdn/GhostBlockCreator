@@ -14,6 +14,7 @@ command.error.not_edit=<GBC> Error: Not in edit mode!
 command.error.not_numb=<GBC> Error: %s is not a validate number!
 command.error.few_args=<GBC> Error: Args too few, at least %s but found %s!
 command.error.na_block=<GBC> Error: %s is not a exist block!
+command.error.req_boss=<GBC> Error: You are not in boss area
 
 edit_mode.enabled=<GBC> Edit Mode Enabled
 edit_mode.disabled=<GBC> Edit Mode Disabled

@@ -29,6 +29,7 @@ private class RegisterSubCmdEdit(key: String, val range: Int, runs: Array<out St
         execute@{
                 if (size <= range) msgTranslate("command.error.few_args", range, size).run { return@execute }
                 if (!BlockCtrl.edit()) msgTranslate("command.error.not_edit").run { return@execute }
+                if (!BlockCtrl.inBoss()) msgTranslate("command.error.req_boss").run { return@execute }
                 reqEnabled { parsePos(this)?.let { runs(it) } }
         }
 )
