@@ -1,8 +1,10 @@
 package water.or.gbcreator.blocks
 
 import net.minecraft.block.Block
+import net.minecraft.block.state.IBlockState
 import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.util.BlockPos
+import net.minecraft.world.World
 import net.minecraftforge.event.world.WorldEvent
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -67,7 +69,7 @@ object BlockCtrl {
         
         @SubscribeEvent
         fun onEvent(event: ChunkLoadedEvent) =
-                runIf(valid()) { curr.forEachInChunk(event.pos) { pos, data -> data raw world?.getBlockState(pos); data loadRaw pos } }
+                runIf(valid()) { curr.forEachInChunk(event.pos) { pos, data -> data raw null; data loadRaw pos } }
         
         @SubscribeEvent
         fun onEvent(event: SBlockChangeEvent) =
@@ -86,16 +88,19 @@ object BlockCtrl {
 
 private inline val world: WorldClient? get() = mc.theWorld
 
-private inline fun BlockData.runIfBlockLoaded(pos: BlockPos, crossinline run: WorldClient.() -> Any): BlockData {
-        world?.run { if (isBlockLoaded(pos)) run(this) }
-        return this
-}
+private inline fun BlockData.runIfBlockLoaded(pos: BlockPos, crossinline run: WorldClient.() -> Any): BlockData =
+        also { world?.run { if (getChunkFromBlockCoords(pos).isLoaded && isBlockLoaded(pos)) run(this) } }
 
 private infix fun BlockData.replace(pos: BlockPos) =
-        runIfBlockLoaded(pos) { if (getBlockState(pos) != nowState) setBlockState(pos, nowState) }
+        runIfBlockLoaded(pos) { if (getBlockState(pos) != nowState) setBlockStateT(pos, nowState) }
 
 private infix fun BlockData.cleanup(pos: BlockPos) =
-        runIfBlockLoaded(pos) { if (rawState != null) setBlockState(pos, rawState); raw(null) }
+        runIfBlockLoaded(pos) { rawState?.let { setBlockStateT(pos, it) }; raw(null) }
 
 private infix fun BlockData.loadRaw(pos: BlockPos) =
         runIfBlockLoaded(pos) { if (rawState == null) raw(getBlockState(pos)); replace(pos) }
+
+private fun World.setBlockStateT(pos: BlockPos, state: IBlockState) {
+        setBlockState(pos, state)
+        state.block.createTileEntity(this, state)?.let { setTileEntity(pos, it) } ?: removeTileEntity(pos)
+}
