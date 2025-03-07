@@ -6,6 +6,7 @@ command.set.desc=<GBC> Help: /gbc set <pos> <block> <meta> - place ghost block a
 command.del.desc=<GBC> Help: /gbc del <pos> - delete ghost block at pos
 command.get.desc=<GBC> Help: /gbc get <pos> - get block at pos
 command.cfg.desc=<GBC> Help: /gbc cfg - open settings
+command.fill.desc=<GBC> Help: /gbc fill <pos> <pos> <block> <meta> - fill or remove ghost block in range
 
 command.n_exist=Command `%s` doesn't existed!
 

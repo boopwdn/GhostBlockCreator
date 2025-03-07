@@ -1,26 +1,35 @@
 package water.or.gbcreator.config
 
 import cc.polyfrost.oneconfig.config.Config
+import cc.polyfrost.oneconfig.config.annotations.Button
 import cc.polyfrost.oneconfig.config.annotations.Checkbox
 import cc.polyfrost.oneconfig.config.annotations.HUD
 import cc.polyfrost.oneconfig.config.data.Mod
 import cc.polyfrost.oneconfig.config.data.ModType
 import water.or.gbcreator.Tags
 import water.or.gbcreator.blocks.BlockCtrl
+import water.or.gbcreator.blocks.BlockStore
 
 object GBCConfig : Config(Mod(Tags.MOD_NAME, ModType.SKYBLOCK), Tags.MOD_ID + ".json") {
-        init {
-                initialize()
+        @Transient
+        @Button(name = "Reload Config", text = "Reload", category = "Main")
+        val reloadConfigs = Runnable {
+                if (BlockCtrl.edit()) BlockCtrl.editToggle()
+                BlockStore.loadAll()
         }
-        
-        @HUD(name = "State HUD", category = "Main")
-        val hudState = HudState
         
         @Checkbox(name = "Only In Boss", category = "Main")
         var onlyInBoss = false
         
+        @HUD(name = "State HUD", category = "Main")
+        var hudState = HudState()
+        
         @Transient
         private var wasEnabled = enabled
+        
+        init {
+                initialize()
+        }
         
         override fun save() {
                 super.save()

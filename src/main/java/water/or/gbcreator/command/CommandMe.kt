@@ -2,6 +2,8 @@ package water.or.gbcreator.command
 
 import java.util.stream.Collectors
 import kotlin.math.floor
+import kotlin.math.max
+import kotlin.math.min
 import net.minecraft.block.Block
 import net.minecraft.command.CommandBase
 import net.minecraft.command.CommandBase.*
@@ -27,10 +29,19 @@ private class RegisterSubCmdEdit(key: String, val range: Int, runs: Array<out St
 RegisterSubCmd(
         key,
         execute@{
-                if (size <= range) msgTranslate("command.error.few_args", range, size).run { return@execute }
-                if (!BlockCtrl.edit()) msgTranslate("command.error.not_edit").run { return@execute }
-                if (!BlockCtrl.inBoss()) msgTranslate("command.error.req_boss").run { return@execute }
-                reqEnabled { parsePos(this)?.let { runs(it) } }
+                if (size <= range) {
+                        msgTranslate("command.error.few_args", range, size)
+                        return@execute
+                }
+                if (!BlockCtrl.edit()) {
+                        msgTranslate("command.error.not_edit")
+                        return@execute
+                }
+                if (!BlockCtrl.inBoss()) {
+                        msgTranslate("command.error.req_boss")
+                        return@execute
+                }
+                reqEnabled { parsePos(1)?.let { runs(it) } }
         }
 )
 
@@ -53,8 +64,13 @@ object CommandMe : CommandBase() {
                 .collect(Collectors.toList())
                 if (REGISTRY[args[0]] !is RegisterSubCmdEdit) return mutableListOf()
                 if (args.size <= 4) return func_175771_a(args, 1, pos)
-                return if (args[0] == "set" && args.size == 5) getListOfStringsMatchingLastWord(args,
-                                                                                                Block.blockRegistry.keys) else mutableListOf()
+                if (args[0] == "set" && args.size == 5)
+                        return getListOfStringsMatchingLastWord(args, Block.blockRegistry.keys)
+                if (args[0] == "fill") {
+                        if (args.size <= 7) return func_175771_a(args, 4, pos)
+                        if (args.size == 8) return getListOfStringsMatchingLastWord(args, Block.blockRegistry.keys)
+                }
+                return mutableListOf()
         }
         
         override fun processCommand(sender: ICommandSender, args: Array<out String>) =
@@ -67,17 +83,39 @@ object CommandMe : CommandBase() {
                 RegisterSubCmd("help") { REGISTRY.keys.forEach { msgTranslate("command.$it.desc") } }
                 RegisterSubCmd("edit") { reqEnabled { BlockCtrl.editToggle() } }
                 RegisterSubCmd("cfg") { GBCConfig.openGui() }
-                RegisterSubCmdEdit("set", 4) { it addBlock this }
+                RegisterSubCmdEdit("set", 4) {
+                        readBlock(4)?.let { (block, meta) ->
+                                BlockCtrl.set(it, block, meta)
+                        }
+                }
                 RegisterSubCmdEdit("del", 3) { BlockCtrl del it }
                 RegisterSubCmdEdit("get", 3) { BlockCtrl get it }
+                RegisterSubCmdEdit("fill", 6) { f ->
+                        val t = parsePos(4) ?: return@RegisterSubCmdEdit
+                        val minX = min(f.x, t.x)
+                        val maxX = max(f.x, t.x)
+                        val minY = min(f.y, t.y)
+                        val maxY = max(f.y, t.y)
+                        val minZ = min(f.z, t.z)
+                        val maxZ = max(f.z, t.z)
+                        readBlock(7)?.let { (block, meta) ->
+                                for (x in minX..maxX) for (y in minY..maxY) for (z in minZ..maxZ) {
+                                        BlockCtrl.set(BlockPos(x, y, z), block, meta)
+                                }
+                        } ?: run {
+                                for (x in minX..maxX) for (y in minY..maxY) for (z in minZ..maxZ) {
+                                        BlockCtrl del BlockPos(x, y, z)
+                                }
+                        }
+                }
         }
 }
 
-private fun parsePos(args: Array<out String>): BlockPos? = runCatching {
+private infix fun Array<out String>.parsePos(offset: Int): BlockPos? = runCatching {
         BlockPos(
-                floor(parseDouble(mc.thePlayer.posX, args[1], false)),
-                floor(parseDouble(mc.thePlayer.posY, args[2], false)),
-                floor(parseDouble(mc.thePlayer.posZ, args[3], false))
+                floor(parseDouble(mc.thePlayer.posX, this[offset], false)),
+                floor(parseDouble(mc.thePlayer.posY, this[offset + 1], false)),
+                floor(parseDouble(mc.thePlayer.posZ, this[offset + 2], false))
         )
 }.onFailure { if (it is NumberInvalidException) msgTranslate("command.error.not_numb", it.errorObjects?.get(0)) }
 .getOrNull()
@@ -85,12 +123,22 @@ private fun parsePos(args: Array<out String>): BlockPos? = runCatching {
 private fun Array<out String>.reqEnabled(run: Array<out String>.() -> Unit): Unit =
 if (GBCConfig.enabled) run() else msgTranslate("command.error.disabled")
 
-private infix fun BlockPos.addBlock(args: Array<out String>) =
-BlockCtrl.set(
-        this, args[4].toBlock() ?: msgTranslate("command.error.na_block", args[4]).run { return@addBlock },
-        if (args.size > 5) args[5].toMeta() ?: msgTranslate("command.error.not_numb",
-                                                            args[5]).run { return@addBlock } else 0
-)
+private infix fun Array<out String>.readBlock(offset: Int): Pair<Block, Int>? {
+        val block = this[offset].toBlock()
+        if (block === null) {
+                msgTranslate("command.error.na_block", this[4])
+                return null
+        }
+        
+        return block to if (this.size > offset + 1) {
+                val meta = this[offset + 1].toMeta()
+                if (meta === null) {
+                        msgTranslate("command.error.not_numb", this[5])
+                        return null
+                }
+                meta
+        } else 0
+}
 
 private fun String.toBlock(): Block? =
 Block.getBlockFromName(this).also { if (it == null) msgTranslate("command.error.na_block", this) }
