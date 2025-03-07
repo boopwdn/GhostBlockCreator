@@ -13,8 +13,9 @@ import water.or.gbcreator.blocks.BlockStore
 object GBCConfig : Config(Mod(Tags.MOD_NAME, ModType.SKYBLOCK), Tags.MOD_ID + ".json") {
         @Transient
         @Button(name = "Reload Config", text = "Reload", category = "Main")
+        @Suppress("UNUSED")
         val reloadConfigs = Runnable {
-                if (BlockCtrl.edit()) BlockCtrl.editToggle()
+                BlockCtrl.inactive(save = false)
                 BlockStore.loadAll()
         }
         
@@ -22,6 +23,7 @@ object GBCConfig : Config(Mod(Tags.MOD_NAME, ModType.SKYBLOCK), Tags.MOD_ID + ".
         var onlyInBoss = false
         
         @HUD(name = "State HUD", category = "Main")
+        @Suppress("UNUSED")
         var hudState = HudState()
         
         @Transient

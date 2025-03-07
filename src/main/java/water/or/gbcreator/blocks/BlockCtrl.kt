@@ -23,7 +23,7 @@ object BlockCtrl {
         private var edit = false
         private var curr = BlockStore.EMPTY
         
-        fun notEmpty() = curr != BlockStore.EMPTY
+        fun notEmpty() = curr !== BlockStore.EMPTY
         
         fun inBoss() = !GBCConfig.onlyInBoss || meInBoss()
         
@@ -37,10 +37,10 @@ object BlockCtrl {
                 msgTranslate("edit_mode.${if (edit) "en" else "dis"}abled")
         } else msgTranslate("edit_mode.invalid")
         
-        fun inactive(repl: BlockStore = BlockStore.EMPTY) {
+        fun inactive(repl: BlockStore = BlockStore.EMPTY, save: Boolean = true) {
                 if (edit) editToggle()
                 curr forEach { pos, data -> data cleanup pos }
-                if (curr != BlockStore.EMPTY) curr.save()
+                if (curr !== BlockStore.EMPTY && save) curr.save()
                 curr = repl
         }
         

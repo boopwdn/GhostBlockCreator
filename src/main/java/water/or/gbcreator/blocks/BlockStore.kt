@@ -65,12 +65,21 @@ class BlockStore(name: String) {
         fun forEachInChunk(pos: ChunkPos, action: (BlockPos, BlockData) -> (Unit)) =
         chunks[pos]?.forEach { action(it, blocks[it]!!) }
         
+        fun clear() {
+                chunks.clear()
+                blocks.clear()
+        }
+        
         companion object {
                 val EMPTY = BlockStore("ignored")
                 
                 val F7Store = BlockStore("floor7")
                 
-                fun loadAll() = registry.forEach { if (it != EMPTY) it.load() }
+                fun loadAll() = registry.forEach {
+                        if (it === EMPTY) return@forEach
+                        it.clear()
+                        it.load()
+                }
         }
 }
 
