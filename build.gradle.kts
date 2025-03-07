@@ -52,7 +52,9 @@ loom {
                 runConfigs {
                         "client" {
                                 programArgs("--tweakClass", "cc.polyfrost.oneconfig.loader.stage0.LaunchWrapperTweaker")
-                                property("mixin.debug.export", "true") // Outputs all mixin changes to `versions/{mcVersion}/run/.mixin.out/class`
+                                property("mixin.debug.export",
+                                         "true") // Outputs all mixin changes to `versions/{mcVersion}/run/.mixin.out/class`
+                                property("FMLAT", mod_id)
                         }
                 }
         }
@@ -104,7 +106,7 @@ dependencies {
                 compileOnly("org.spongepowered:mixin:0.7.11-SNAPSHOT")
                 shade("cc.polyfrost:oneconfig-wrapper-launchwrapper:1.0.0-beta17")
         }
-        
+
 //        modRuntimeOnly("curse.maven:in-game-account-switcher-232676:3413259a")
 }
 

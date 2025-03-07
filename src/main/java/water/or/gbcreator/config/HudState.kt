@@ -3,10 +3,10 @@ package water.or.gbcreator.config
 import cc.polyfrost.oneconfig.hud.SingleTextHud
 import water.or.gbcreator.blocks.BlockCtrl
 
-class HudState : SingleTextHud("State HUD", true) {
-        private val value: String = "Edit Mode Enabled!"
+object HudState : SingleTextHud("State HUD", true) {
+        override fun getText(example: Boolean): String = if (BlockCtrl.edit() || example) "Edit Mode Enabled!" else ""
         
-        override fun getText(example: Boolean): String = if (BlockCtrl.edit() || example) value else ""
-        
-        override fun getLines(lines: MutableList<String>, example: Boolean): Unit = with(lines) { add(getText(example)) }
+        override fun getLines(lines: MutableList<String>, example: Boolean): Unit = with(lines) {
+                add(getText(example))
+        }
 }

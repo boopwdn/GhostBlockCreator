@@ -1,12 +1,24 @@
 package water.or.gbcreator.utils
 
+import net.minecraft.scoreboard.ScorePlayerTeam
 import net.minecraft.util.BlockPos
 
 fun getFloor(): Floor {
+        val sidebarLines = run {
+                val sb = mc.theWorld?.scoreboard ?: return@run emptyList()
+                val ob = sb.getObjectiveInDisplaySlot(1) ?: return@run emptyList()
+                
+                return@run sb.getSortedScores(ob)
+                .filter { it?.playerName?.startsWith("#") == false }
+                .let { if (it.size > 15) it.drop(15) else it }
+                .map { ScorePlayerTeam.formatPlayerName(sb.getPlayersTeam(it.playerName), it.playerName) }
+        }
+        
         for (i in sidebarLines) {
                 return Floor.valueOf(
-                        Regex("The Catacombs \\((\\w+)\\)\$").find(cleanSB(i))?.groupValues?.get(1) ?: continue
+                        (Regex("The Catacombs \\((\\w+)\\)\$").find(cleanSB(i)) ?: continue).groupValues[1]
                 )
+                
         }
         return Floor.None
 }

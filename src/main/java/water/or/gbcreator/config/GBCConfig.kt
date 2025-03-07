@@ -8,15 +8,18 @@ import cc.polyfrost.oneconfig.config.data.ModType
 import water.or.gbcreator.Tags
 import water.or.gbcreator.blocks.BlockCtrl
 
-class GBCConfig : Config(Mod(Tags.MOD_NAME, ModType.SKYBLOCK), Tags.MOD_ID + ".json") {
+object GBCConfig : Config(Mod(Tags.MOD_NAME, ModType.SKYBLOCK), Tags.MOD_ID + ".json") {
         init {
                 initialize()
         }
         
-        @HUD(name = "State HUD") val hudState = HudState()
+        @HUD(name = "State HUD", category = "Main")
+        val hudState = HudState
         
-        @Checkbox(name = "Only In Boss") var onlyInBoss = false
+        @Checkbox(name = "Only In Boss", category = "Main")
+        var onlyInBoss = false
         
+        @Transient
         private var wasEnabled = enabled
         
         override fun save() {
